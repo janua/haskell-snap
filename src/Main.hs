@@ -24,8 +24,7 @@ main = do
 site :: MVar Int -> MVar [ByteString] -> Snap ()
 site n u =
     ifTop (writeBS "hello world") <|>
-    route [ ("foo", writeBS "bar")
-          , ("echo/:echoparam", echoHandler)
+    route [ ("echo/:echoparam", echoHandler)
           , ("site/:site", redirectHandler)
           , ("counter", counterHandler n)
           , ("useragent", addAgent u)
