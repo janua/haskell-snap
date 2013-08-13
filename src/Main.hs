@@ -1,15 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Control.Applicative
-import           Snap.Core
-import           Snap.Util.FileServe
-import           Snap.Http.Server
+import Control.Applicative
+import Snap.Core
+import Snap.Util.FileServe
+import Snap.Http.Server
 import Control.Monad
 import Data.ByteString
 import Data.Maybe (fromMaybe)
 import Data.List (nub)
-
 import Control.Concurrent.MVar (newMVar, MVar, modifyMVar)
 import Control.Monad.Trans (liftIO)
 import qualified Data.ByteString.Char8 as C
