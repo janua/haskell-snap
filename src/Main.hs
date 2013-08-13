@@ -27,7 +27,7 @@ site n u =
     route [ ("echo/:echoparam", echoHandler)
           , ("site/:site", redirectHandler)
           , ("counter", counterHandler n)
-          , ("useragent", addAgent u)
+          , ("useragent", addAgentHandler u)
           ] <|>
     dir "static" (serveDirectory ".")
 
@@ -57,8 +57,8 @@ counterHandler n = do
 incrementCounter :: MVar Int -> IO Int
 incrementCounter n = modifyMVar n $ \s -> return (s + 1, s + 1)
 
-addAgent :: MVar [ByteString] -> Snap ()
-addAgent n = do
+addAgentHandler :: MVar [ByteString] -> Snap ()
+addAgentHandler n = do
   req <- getRequest
   let ua = fromMaybe "" (getHeader "User-Agent" req)
   result <- liftIO $ appendUserAgent n ua
