@@ -6,6 +6,7 @@ import Snap.Core
 import Snap.Util.FileServe
 import Snap.Http.Server
 import Control.Monad
+import Control.Concurrent.STM
 import Data.ByteString
 import Data.Maybe (fromMaybe)
 import Data.List (nub)
@@ -19,14 +20,16 @@ main :: IO ()
 main = do
   hitCounter <- newMVar 0
   userAgents <- newMVar []
-  quickHttpServe $ site hitCounter userAgents
+  tvarHitCounter <- newTVarIO 0
+  quickHttpServe $ site hitCounter userAgents tvarHitCounter
 
-site :: MVar Int -> MVar [ByteString] -> Snap ()
-site n u =
+site :: MVar Int -> MVar [ByteString] -> TVar Int -> Snap ()
+site n u t =
     ifTop (writeBS "hello world") <|>
     route [ ("echo/:echoparam", echoHandler)
           , ("site/:site", redirectHandler)
           , ("counter", counterHandler n)
+          , ("tvarcounter", tvarCounterHandler t)
           , ("useragent", addAgentHandler u)
           ] <|>
     dir "static" (serveDirectory ".")
@@ -69,3 +72,12 @@ lineBreak = "\n"
 
 appendUserAgent :: MVar [ByteString] -> ByteString -> IO [ByteString]
 appendUserAgent u useragent = modifyMVar u $ \m -> return (nub $ m ++ [append useragent lineBreak], nub $ m ++ [append useragent lineBreak])
+
+tvarCounterHandler :: TVar Int -> Snap ()
+tvarCounterHandler t = do
+  liftIO $ atomically $ incrementTvar t
+  tvar <- liftIO $ readTVarIO t
+  writeBS $ C.pack $ show tvar
+
+incrementTvar :: TVar Int -> STM ()
+incrementTvar t = modifyTVar t (\i -> i + 1)
