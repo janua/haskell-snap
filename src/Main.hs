@@ -90,7 +90,7 @@ tvarAgentHandler t = do
   let userAgent = fromMaybe "" $ getHeader "User-Agent" req
   when (not $ C.null userAgent) $ liftIO $ atomically $ updateAgentTvar t userAgent
   tvar <-  liftIO $ readTVarIO t
-  writeBS $ C.pack $ show tvar
+  writeBS $ C.concat tvar
 
 updateAgentTvar :: TVar [ByteString] -> ByteString -> STM ()
-updateAgentTvar t s = modifyTVar t (\l -> nub $ l ++ [s])
+updateAgentTvar t s = modifyTVar t (\l -> nub $ l ++ [append s lineBreak])
