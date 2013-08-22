@@ -21,15 +21,17 @@ main = do
   hitCounter <- newMVar 0
   userAgents <- newMVar []
   tvarHitCounter <- newTVarIO 0
-  quickHttpServe $ site hitCounter userAgents tvarHitCounter
+  tvarAgents <- newTVarIO []
+  quickHttpServe $ site hitCounter userAgents tvarHitCounter tvarAgents
 
-site :: MVar Int -> MVar [ByteString] -> TVar Int -> Snap ()
-site n u t =
+site :: MVar Int -> MVar [ByteString] -> TVar Int -> TVar [ByteString] -> Snap ()
+site n u t ta =
     ifTop (writeBS "hello world") <|>
     route [ ("echo/:echoparam", echoHandler)
           , ("site/:site", redirectHandler)
           , ("counter", counterHandler n)
           , ("tvarcounter", tvarCounterHandler t)
+          , ("tvaragent", tvarAgentHandler ta)
           , ("useragent", addAgentHandler u)
           ] <|>
     dir "static" (serveDirectory ".")
@@ -81,3 +83,14 @@ tvarCounterHandler t = do
 
 incrementTvar :: TVar Int -> STM ()
 incrementTvar t = modifyTVar t (\i -> i + 1)
+
+tvarAgentHandler :: TVar [ByteString] -> Snap ()
+tvarAgentHandler t = do
+  req <- getRequest
+  let userAgent = fromMaybe "" $ getHeader "User-Agent" req
+  when (not $ C.null userAgent) $ liftIO $ atomically $ updateAgentTvar t userAgent
+  tvar <-  liftIO $ readTVarIO t
+  writeBS $ C.pack $ show tvar
+
+updateAgentTvar :: TVar [ByteString] -> ByteString -> STM ()
+updateAgentTvar t s = modifyTVar t (\l -> nub $ l ++ [s])
